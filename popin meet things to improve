@@ -1,0 +1,113 @@
+Here’s a focused review of the app with prioritized findings and concrete fixes. I’ve cited the specific files and symbols where applicable.
+
+Critical
+
+Logging leaks and verbosity in production
+Files: POPin-Meet/routes.py, POPin-Meet/microsoft_calendar.py
+Issue: We added many [DEBUG] prints (time slots, token, availability, Graph query params, event times). In production these can leak sensitive info (tokens, schedule patterns, potentially PII) and create noisy logs.
+Fix:
+Gate debug logs behind an environment config (e.g., APP_DEBUG_LOG_CAL=0/1). Wrap prints with if current_app.config.get('DEBUG_CAL', False).
+Scrub identifiable values (token, emails) before logging.
+Reduce to one summary line per request in production.
+OAuth/session token handling in session
+Files: POPin-Meet/routes.py (stores credentials in session dict), microsoft_calendar.py, google_calendar.py
+Issue: Storing full credential blobs in server-side session (even if server-side) risks leakage and oversized cookies if misconfigured.
+Fix:
+Store tokens server-side in DB keyed by meeting token + a random session key; keep only a short opaque reference in session.
+Encrypt at rest (e.g., Fernet) if DB used. Ensure refresh/expiry handled.
+GET routes mutating state
+Files: POPin-Meet/routes.py: /disconnect_calendar/, /disconnect_outlook/
+Issue: State changes via GET make them CSRF-prone.
+Fix:
+Change to POST endpoints with CSRF protection (Flask-WTF) and form buttons.
+Or at minimum add a signed token in the URL and verify.
+High
+
+Outlook date-time parsing edge cases fixed but needs guardrails
+Files: POPin-Meet/microsoft_calendar.py: get_free_busy_info(), _parse_graph_dt
+Issue: We now robustly parse Graph timestamps with 7-digit fractions and missing Z. Good, but this logic should be unit-tested to prevent regressions.
+Fix:
+Add tests for combinations: with/without Z, with 7-digit fractional seconds, TZ offsets.
+Availability behavior coupling + UI assumptions
+Files: POPin-Meet/templates/respond_meeting.html
+Issue: Active provider logic prefers Google if both connected. This is a UX decision and should be explicit (banner does say which one is used now). However, a mismatch between banner and algorithm or stale availability dicts could confuse users.
+Fix:
+Offer a toggle control to pick which provider to use when both are connected, defaulting to Google.
+Persist choice in session per token: session[f'av_source_{token}'] in routes.py.
+Missing CSRF protection
+Files: POPin-Meet/routes.py (forms), templates/*.html
+Issue: Forms likely lack CSRF tokens.
+Fix:
+Add Flask-WTF, set SECRET_KEY and WTF_CSRF_ENABLED, include {{ form.csrf_token }} in forms.
+Medium
+
+Template hot reload expectation vs. production cache
+Files: POPin-Meet/app.py or factory
+Issue: Production likely runs without TEMPLATES_AUTO_RELOAD. We restarted service to pick template changes, but this should be a known requirement.
+Fix:
+Document: templates require restart in production.
+For dev: app.config['TEMPLATES_AUTO_RELOAD'] = True guarded by FLASK_ENV=development.
+Backup sprawl and mixed ownership on server
+Paths: /home/ec2-user/apps/popin-meet/POPin-Meet/.bak
+Issue: Multiple .bak, some owned by root, many variants. Can clutter and complicate.
+Fix:
+Rotate and prune backups (keep last N, e.g., 5).
+Ensure operations run under ec2-user to avoid root-owned leftovers.
+ICS filename sanitization
+Files: POPin-Meet/routes.py -> download_ics()
+Issue: Using meeting_title to form filename may include unsafe chars.
+Fix:
+Sanitize to safe ASCII, strip path separators, or use slugify.
+Low
+
+Error handling consistency
+Files: microsoft_calendar.py, google_calendar.py
+Issue: Some branches return {} (ambiguous), some return availability with indices False. Downstream expects dict of exact indices.
+Fix:
+Always return an index-aligned mapping. If query fails, default to False per slot to avoid empty map semantics.
+Hard-coded defaults
+Files: routes.py, microsoft_calendar.py, google_calendar.py
+Issue: Default timezone 'US/Mountain' is repeated ad hoc.
+Fix:
+Centralize DEFAULT_TZ in a settings module.
+GET endpoints lack rate limiting
+Issue: OAuth callback and calendar checks could be spammed.
+Fix:
+Add simple rate limiting (Flask-Limiter) for calendar availability endpoints.
+Security/Privacy hygiene
+
+Secrets in repo or workspace
+Paths: .env.server, “google and other credentials”, “twilio_2FA_recovery_code.txt”
+Issue: Sensitive materials lying around.
+Fix:
+Ensure .gitignore covers them (it likely does), but review server filesystem too.
+Use environment variables or secret manager for credentials.
+Log redaction
+Files: all calendar modules
+Fix:
+Redact tokens, authorization codes, refresh tokens from any DEBUG messages.
+Reliability and Ops
+
+Health check endpoint and readiness probe
+Add /healthz (simple OK) and optionally /readiness to verify DB and critical integrations (optional).
+Gunicorn settings
+Ensure graceful timeouts and worker count appropriate for instance size; consider --graceful-timeout to allow external calls to finish.
+Developer experience
+
+Unit tests for availability
+Add tests: Build slots_meta and mock Graph/Google responses, assert expected availability dicts.
+Lint/format
+Adopt ruff/black and apply across the project.
+Quick wins I can do next (tell me which to prioritize)
+
+Harden logging: add DEBUG_CAL flag and scrub prints (Critical).
+Make disconnect routes POST with CSRF tokens (Critical).
+Add provider selector when both connected, store choice in session (High).
+Sanitize ICS filename (Medium).
+Add unit tests for Outlook/Google time parsing (High).
+If you want, I can start by implementing:
+
+Logging guard + redaction.
+Disconnect endpoints to POST with CSRF.
+ICS filename sanitization.
+Say “apply 1/2/3” and I’ll implement and deploy.

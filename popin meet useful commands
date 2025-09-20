@@ -1,0 +1,276 @@
+
+to give to windsurf for copy to ec2 instance
+
+Hostname or IP: 50.18.94.47
+SSH username: ec2-user
+Path to your SSH key (.pem): G:\PopIn docs info\ssh-certs\ssh-certs\devAK.pem
+Remote project directory: /home/ec2-user/apps/popin-meet/POPin-Meet
+Systemd service : popin-meet
+check Python venv or uv path in the same projec directory folder.
+
+Deployment profile (saved)
+
+Host: 50.18.94.47
+SSH user: ec2-user
+SSH key: G:\PopIn docs info\ssh-certs\ssh-certs\devAK.pem
+Remote project dir: /home/ec2-user/apps/popin-meet/POPin-Meet
+Systemd service: popin-meet
+Venv: check venv/.venv/env under project dir
+
+
+ssh -i "G:\PopIn docs info\ssh-certs\ssh-certs\devAK.pem" ec2-user@50.18.94.47
+cat /home/ec2-user/apps/popin-meet/.env
+
+sudo systemctl restart popin-meet
+sudo systemctl status --no-pager --lines=30 popin-meet
+
+
+50.18.94.47
+
+https://meet.popinnow.com/s/ia0s9r
+https://meet.popinnow.com/meeting/b3ir1z/summary
+
+to restart service after deployment
+ssh -i "G:\PopIn docs info\ssh-certs\ssh-certs\devAK.pem" ec2-user@50.18.94.47 `
+'sudo systemctl restart popin-meet; \
+sudo systemctl status --no-pager popin-meet; \
+sudo journalctl -u popin-meet -n 200 --no-pager'
+
+$PEM = "G:\PopIn docs info\ssh-certs\ssh-certs\devAK.pem"
+
+# Remove inherited permissions
+icacls "$PEM" /inheritance:r
+
+# Grant read to your user only
+icacls "$PEM" /grant:r "$($env:UserName):(R)"
+
+# Remove broad groups
+icacls "$PEM" /remove "NT AUTHORITY\Authenticated Users" "BUILTIN\Users" "Everyone"
+
+# Optional: clear MOTW
+Unblock-File -Path "$PEM"
+
+# Verify ACLs
+icacls "$PEM"
+
+
+
+scp -i "G:\PopIn docs info\ssh-certs\ssh-certs\devAK.pem" "g:\POPin-Meet\POPin-Meet\app.py" "ec2-user@50.18.94.47:/home/ec2-user/apps/popin-meet/POPin-Meet/app.py"
+
+
+
+
+
+
+
+# Paths
+$src = "G:\PopIn docs info\ssh-certs\ssh-certs\devAK.pem"
+$dst = "$env:USERPROFILE\.ssh\devAK.pem"
+
+# Create .ssh and copy the key (Admin fixes the access denied from G:)
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.ssh" | Out-Null
+Copy-Item -LiteralPath $src -Destination $dst -Force
+
+# Grant only your account Read permission
+$acct = "$env:USERDOMAIN\$env:USERNAME"
+icacls "$dst" /inheritance:r
+icacls "$dst" /remove "NT AUTHORITY\Authenticated Users" "BUILTIN\Users" "Everyone" 2>$null
+icacls "$dst" /grant:r "$acct:(R)"
+icacls "$dst"
+
+
+POST https://meet.popinnow.com/create 500 (INTERNAL SERVER ERROR)
+
+# Gunicorn/app logs
+sudo journalctl -u popin-meet -n 200 --no-pager
+
+# Nginx error (if any)
+sudo tail -n 100 /var/log/nginx/error.log
+
+# See what is using port 8000
+sudo ss -ltnp 'sport = :8000' || sudo lsof -i :8000
+
+# Stop the systemd service (to avoid races)
+sudo systemctl stop popin-meet
+
+# Kill any stray gunicorn bound to 8000
+# (Review PID from ss/lsof, then:)
+sudo kill -9 <PID>
+# If multiple:
+sudo pkill -f 'gunicorn.*8000' || true
+
+# Verify port is free
+sudo ss -ltnp 'sport = :8000' || echo "free"
+
+# Start service cleanly
+sudo systemctl start popin-meet
+sudo systemctl status popin-meet --no-pager
+sudo journalctl -u popin-meet -n 50 --no-pager
+
+
+to copy files from windows to ec2 instance
+scp -i "G:\PopIn docs info\ssh-certs\ssh-certs\devAK.pem" "g:\POPin-Meet\POPin-Meet\email_utils.py" "ec2-user@50.18.94.47:/home/ec2-user/apps/popin-meet/POPin-Meet/email_utils.py"
+scp -i "G:\PopIn docs info\ssh-certs\ssh-certs\devAK.pem" "g:\POPin-Meet\POPin-Meet\app.py" "ec2-user@50.18.94.47:/home/ec2-user/apps/popin-meet/POPin-Meet/app.py"
+
+
+
+ssh -i "$PEM" ec2-user@50.18.94.47 "sudo cp -a /etc/popin-meet.env /etc/popin-meet.env.bak 2>/dev/null || true; \
+sudo bash -lc 'cat >/etc/popin-meet.env <<EOF
+APP_DOMAIN=meet.popinnow.com
+SESSION_SECRET=$(openssl rand -hex 32)
+
+DATABASE_URL=<YOUR_POSTGRES_URL>
+
+MAIL_SERVER=email-smtp.us-west-1.amazonaws.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=AKIAZPFOZEQ6OVKDMHVH
+MAIL_PASSWORD=BFgh6FJws8NvCWfWpf7lm53rUYrow49R3Xdvy0VfWv3S
+MAIL_DEFAULT_SENDER=akmal@popinnow.com
+EOF
+'"
+
+
+popinnow.com\x0aEOF\x0a'";3bbe43db-7aa8-47e0-8040-55a8a685ad40openssl : The term 'openssl' is not 
+recognized as the name of a cmdlet,        
+function, script file, or operable         
+program. Check the spelling of the name,   
+or if a path was included, verify that     
+the path is correct and try again.
+At line:4 char:18
++ SESSION_SECRET=$(openssl rand -hex 32)   
++                  ~~~~~~~
+    + CategoryInfo          : ObjectNotFo  
+   und: (openssl:String) [], CommandNotF   
+  oundException
+    + FullyQualifiedErrorId : CommandNotF  
+   oundException
+   
+ssh -i "G:\PopIn docs info\ssh-certs\ssh-certs\devAK.pem" ec2-user@50.18.94.47
+
+
+MAIL_SERVER=email-smtp.us-west-1.amazonaws.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=AKIAZPFOZEQ6OVKDMHVH
+MAIL_PASSWORD=BFgh6FJws8NvCWfWpf7lm53rUYrow49R3Xdvy0VfWv3S
+MAIL_DEFAULT_SENDER=akmal@popinnow.com
+
+
+
+SHELL=/bin/bash
+INVOCATION_ID=db7c8657b5764c1283aff5c8b9440e89
+JOURNAL_STREAM=8:312539
+SYSTEMD_EXEC_PID=80268
+FLASK_ENV=production
+SESSION_SECRET=CHANGE_ME_TO_A_LONG_RANDOM
+APP_DOMAIN=meet.popinnow.com
+GOOGLE_CLIENT_ID=242766373676-a61onret7t8qseh0rsqv3fo81220s1iu.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=G0CSPX-7mznIvnpGok8SGJQ6EEKxcqz1C90
+MS_CLIENT_ID=0d9236e5-85aa-480c-8fbe-00220797fc48
+MS_CLIENT_SECRET=U2f8Q~.R5TZSD~jjbn0jiq-AqyU6uXpA1JztsarY
+SMTP_SERVER=email-smtp.us-east-1.amazonaws.com
+SMTP_PORT=587
+SENDER_EMAIL=notifications@popinnow.com    
+SENDER_PASSWORD=TO_SET_LATER
+DATABASE_URL=postgresql+psycopg2://popin:akmal123@127.0.0.1:5432/popin_meet
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_PHONE_NUMBER=
+[ec2-user@ip-10-0-23-183 ~]$
+
+
+
+
+
+# App
+FLASK_ENV=production
+APP_DOMAIN=meet.popinnow.com
+SESSION_SECRET=c13939d144695ccd33b5297f473c0cf3b567b4b406cc1b88dec7146e8c7e5089
+
+# Database
+DATABASE_URL=postgresql+psycopg2://popin:akmal123@127.0.0.1:5432/popin_meet   # confirm
+
+# OAuth (Google)
+GOOGLE_CLIENT_ID=242766373676-a61onret7t8qseh0rsqv3fo81220s1iu.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=G0CSPX-7mznIvnpGok8SGJQ6EEKxcqz1C90
+
+# OAuth (Microsoft)
+MS_CLIENT_ID=0d9236e5-85aa-480c-8fbe-00220797fc48
+MS_CLIENT_SECRET=U2f8Q~.R5TZSD~jjbn0jiq-AqyU6uXpA1JztsarY
+
+# Notifications (Twilio) - optional
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_PHONE_NUMBER=
+
+
+# Email via AWS SES (used by the app)
+MAIL_SERVER=email-smtp.us-west-1.amazonaws.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=AKIAZPFOZEQ6OVKDMHVH
+MAIL_PASSWORD=BFgh6FJws8NvCWfWpf7lm53rUYrow49R3Xdvy0VfWv3S
+MAIL_DEFAULT_SENDER=akmal@popinnow.com
+
+sudo nano /etc/popin-meet.env
+
+
+sudo systemctl daemon-reload
+sudo systemctl restart popin-meet
+sudo systemctl status popin-meet --no-pager
+sudo journalctl -u popin-meet -n 100 --no-pager
+
+
+
+cd /home/ec2-user/apps/popin-meet/POPin-Meet
+python3 - <<'PY'
+import os, email_utils
+print("Using MAIL_SERVER:", os.environ.get("MAIL_SERVER"))
+ok = email_utils._send_email(
+    to_email="akmal@popinnow.com",
+    subject="POPin SES test",
+    plain_body="Hello from POPin via SES."
+)
+print("Send result:", ok)
+PY
+
+
+The service loads env from EnvironmentFile=/home/ec2-user/apps/popin-meet/.env (not /etc/popin-meet.env). If MAIL_* isn’t in that file, the app won’t see your SES settings.
+
+
+
+EnvironmentFile=/home/ec2-user/apps/popin-meet/.env
+
+
+sudo journalctl -u popin-meet -n 200 --no-pager
+sudo journalctl -u popin-meet -f -o cat
+
+sudo tr '\0' '\n' </proc/$MAINPID/environ | grep -E '^(MAIL_|SMTP_|APP_DOMAIN|DATABASE_URL|SESSION_SECRET)='
+
+
+to see what's loaded from env
+[ec2-user@ip-10-0-23-183 ~]$ sudo tr '\0' '\n' </proc/$MAINPID/environ
+
+# Upload models.py
+scp -i "G:\PopIn docs info\ssh-certs\ssh-certs\devAK.pem" `
+    "g:\POPin-Meet\POPin-Meet\models.py" `
+    ec2-user@50.18.94.47:/home/ec2-user/apps/popin-meet/POPin-Meet/models.py
+
+# Upload routes.py
+scp -i "G:\PopIn docs info\ssh-certs\ssh-certs\devAK.pem" `
+    "g:\POPin-Meet\POPin-Meet\routes.py" `
+    ec2-user@50.18.94.47:/home/ec2-user/apps/popin-meet/POPin-Meet/routes.py
+
+
+
+
+ssh -i "$env:USERPROFILE\.ssh\devAK.pem" ec2-user@50.18.94.47 
+
+
+strange i set pasword for postgres as akmal123 but it's not working?
+
+sudo nginx -t && sudo systemctl reload nginx
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+

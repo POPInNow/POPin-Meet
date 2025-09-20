@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Databases / state
+app.db
+instance/
+*.sqlite3
+
+# Logs
+*.log
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Certificates/keys
+*.pem
+*.key
+*.crt
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Node (if any)
+node_modules/
+
+# Test/coverage
+.pytest_cache/
+.coverage
+htmlcov/
