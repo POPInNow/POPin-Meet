@@ -1,4 +1,4 @@
-# POPin Meet
+# POPIN Meet
 
 A lightweight meeting coordination app built with Flask. Create a poll of 2–3 time slots, share a link, collect availability, and confirm the best time. Includes optional Google/Outlook calendar availability checks, add-to-calendar deep links, and multi-channel organizer notifications (Email, SMS, WhatsApp, Slack).
 
@@ -38,22 +38,33 @@ A lightweight meeting coordination app built with Flask. Create a poll of 2–3 
 
 3. Initialize the DB (dev)
    ```bash
-   python -m flask --app POPin-Meet/app.py shell -c "from db import db, init_app; from app import app; from models import Meeting, Response; from db import db; db.create_all(app=app)"
+   python -m flask --app POPIN-Meet/app.py shell -c "from db import db, init_app; from app import app; from models import Meeting, Response; from db import db; db.create_all(app=app)"
    ```
 
 4. Run (dev)
    ```bash
-   python POPin-Meet/app.py
+   python POPIN-Meet/app.py
    # visit http://localhost:5000
    ```
 
+## Slack setup
+
+To receive organizer notifications in Slack using Incoming Webhooks:
+
+1. Add Slack's Incoming Webhooks to your workspace and create a webhook for the target channel. See the official docs: https://api.slack.com/messaging/webhooks
+2. Copy the generated webhook URL (it starts with `https://hooks.slack.com/services/...`).
+3. In the app's Create Meeting page, select "Slack" under Notification Preferences and paste the webhook URL.
+
+Notes:
+
+- Treat webhook URLs as secrets. Do not commit or share them publicly.
+- Outbound HTTPS access must be allowed from the server to Slack.
+
 ## Security & Operations
-- Never commit secrets. `.env` is gitignored; rotate any credentials previously committed.
+- Never commit secrets. `.env` is git ignored; rotate any credentials previously committed.
 - Add CSRF protection and OAuth `state` validation before production launch.
 - Prefer Postgres in production. Use Alembic/Flask-Migrate for schema changes.
 - Run with Gunicorn behind Nginx; enable HTTPS and secure cookies.
-
-## Deployment
 - Configure environment variables on the host (systemd EnvironmentFile or secret store).
 - Ensure OAuth apps are configured with correct redirect URLs.
 - Create a systemd service to run Gunicorn pointing at `POPin-Meet/app:app`.

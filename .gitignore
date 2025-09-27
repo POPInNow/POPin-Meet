@@ -47,3 +47,10 @@ node_modules/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Local sensitive files and images
+*.txt
+*.jpg
+google and other credentials
+popin meet things to improve
+popin meet useful commands
