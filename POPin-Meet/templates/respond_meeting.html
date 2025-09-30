@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}{{ meeting.meeting_title }} - POPin Meet{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-calendar-check me-2"></i>{{ meeting.meeting_title }}
+                </h3>
+                <small class="text-muted">Organized by {{ meeting.organizer_name }}</small>
+            </div>
+            <div class="card-body">
+                {% if not google_connected and not outlook_connected %}
+                <div class="alert alert-info mb-4">
+                    <h6 class="mb-3"><i class="fas fa-calendar-plus me-2"></i>Connect Your Calendar</h6>
+                    <p class="small mb-3">Auto-select available times from your calendar</p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{{ url_for('connect_calendar', token=token) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fab fa-google me-1"></i>Connect Google Calendar
+                        </a>
+                        <a href="{{ url_for('connect_outlook', token=token) }}" class="btn btn-sm btn-outline-info">
+                            <i class="fab fa-microsoft me-1"></i>Connect Outlook
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% set active_provider = 'google' if google_connected else ('outlook' if outlook_connected else None) %}
+
+                {% if google_connected %}
+                <div class="alert alert-success d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fab fa-google me-3 fa-2x text-success"></i>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">Google Calendar Connected</h6>
+                            <p class="mb-0 small">
+                                {% if active_provider == 'google' %}
+                                    Using Google to pre-select and cross out slots.
+                                {% else %}
+                                    Connected but not used for availability.
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('disconnect_calendar', token=token) }}" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-unlink me-1"></i>Disconnect
+                    </a>
+                </div>
+                {% endif %}
+                
+                {% if outlook_connected %}
+                <div class="alert alert-success d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fab fa-microsoft me-3 fa-2x text-success"></i>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">Outlook Calendar Connected</h6>
+                            <p class="mb-0 small">
+                                {% if active_provider == 'outlook' %}
+                                    Using Outlook to pre-select and cross out slots.
+                                {% else %}
+                                    Connected but not used for availability.
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('disconnect_outlook', token=token) }}" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-unlink me-1"></i>Disconnect
+                    </a>
+                </div>
+                {% endif %}
+
+                <p class="mb-4">Please select which time slots work for you:</p>
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="respondent_name" class="form-label">Your Name *</label>
+                        <input type="text" class="form-control" id="respondent_name" name="respondent_name" 
+                               value="{{ request.form.respondent_name or '' }}" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Available Time Slots *</label>
+                        <small class="text-muted d-block mb-3">Check all times that work for you, or select "None of these times work" if you're unavailable</small>
+                        
+                        {% for slot in meeting.time_slots %}
+                        {% set google_available = google_availability.get(loop.index0) %}
+                        {% set outlook_available = outlook_availability.get(loop.index0) %}
+                        {% if active_provider == 'google' %}
+                            {% set provider_available = google_available %}
+                        {% elif active_provider == 'outlook' %}
+                            {% set provider_available = outlook_available %}
+                        {% else %}
+                            {% set provider_available = None %}
+                        {% endif %}
+                        {% set is_pre_selected = (provider_available is sameas true) %}
+                        {% set is_manually_checked = request.form.get('slot_' + loop.index0|string) %}
+                        {# Only consider the active provider for crossing/disable #}
+                        {% set is_unavailable = (provider_available is sameas false) and (not is_pre_selected) %}
+                        <div class="form-check mb-2">
+                            <input class="form-check-input time-slot-checkbox" type="checkbox" 
+                                   id="slot_{{ loop.index0 }}" name="slot_{{ loop.index0 }}" 
+                                   value="1" {{ 'checked' if is_manually_checked or (is_pre_selected and not request.form) }}
+                                   {{ 'disabled' if is_unavailable }}>
+                            <label class="form-check-label {{ 'text-decoration-line-through text-muted' if is_unavailable }}" for="slot_{{ loop.index0 }}">
+                                {% if is_pre_selected and (active_provider is not none) %}
+                                    <i class="fas fa-calendar-check me-2 text-success"></i>{{ slot }}
+                                    <small class="text-muted ms-1">({{ meeting.timezone }})</small>
+                                    <small class="text-success ms-2">
+                                        (Available in your {{ 'Google' if active_provider == 'google' else 'Outlook' }} calendar)
+                                    </small>
+                                {% elif is_unavailable and (active_provider is not none) %}
+                                    <i class="fas fa-ban me-2 text-danger"></i>{{ slot }}
+                                    <small class="text-muted ms-1">({{ meeting.timezone }})</small>
+                                    <small class="text-danger ms-2">(Unavailable in your {{ 'Google' if active_provider == 'google' else 'Outlook' }} calendar)</small>
+                                {% else %}
+                                    <i class="fas fa-clock me-2 text-muted"></i>{{ slot }}
+                                    <small class="text-muted ms-1">({{ meeting.timezone }})</small>
+                                {% endif %}
+                            </label>
+                        </div>
+                        {% endfor %}
+                        
+                        <hr class="my-3">
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" 
+                                   id="no_availability" name="no_availability" 
+                                   value="1" {{ 'checked' if request.form.get('no_availability') }}>
+                            <label class="form-check-label text-warning" for="no_availability">
+                                <i class="fas fa-times me-2"></i>None of these times work for me
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check me-2"></i>Submit Response
+                        </button>
+                        <a href="{{ url_for('meeting_summary', token=meeting.token) }}" class="btn btn-outline-info">
+                            <i class="fas fa-chart-bar me-2"></i>View Current Responses
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body text-center">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Your response will be recorded and the organizer will be able to see the results
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus on the name input
+    document.getElementById('respondent_name').focus();
+    
+    // Handle checkbox interactions
+    const timeSlotCheckboxes = document.querySelectorAll('.time-slot-checkbox');
+    const noAvailabilityCheckbox = document.getElementById('no_availability');
+    
+    // Add visual feedback for time slot checkboxes
+    timeSlotCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const label = this.nextElementSibling;
+            if (this.checked) {
+                label.classList.add('text-success');
+                label.querySelector('i').className = 'fas fa-check-circle me-2 text-success';
+                // Uncheck "no availability" if any time slot is selected
+                noAvailabilityCheckbox.checked = false;
+                updateNoAvailabilityLabel();
+            } else {
+                label.classList.remove('text-success');
+                label.querySelector('i').className = 'fas fa-clock me-2 text-muted';
+            }
+        });
+    });
+    
+    // Handle "no availability" checkbox
+    function updateNoAvailabilityLabel() {
+        const label = noAvailabilityCheckbox.nextElementSibling;
+        if (noAvailabilityCheckbox.checked) {
+            label.classList.add('text-warning');
+            label.querySelector('i').className = 'fas fa-times-circle me-2 text-warning';
+        } else {
+            label.classList.remove('text-warning');
+            label.classList.add('text-warning');
+            label.querySelector('i').className = 'fas fa-times me-2';
+        }
+    }
+    
+    noAvailabilityCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            // Uncheck all time slots if "no availability" is selected
+            timeSlotCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                const label = checkbox.nextElementSibling;
+                label.classList.remove('text-success');
+                label.querySelector('i').className = 'fas fa-clock me-2 text-muted';
+            });
+        }
+        updateNoAvailabilityLabel();
+    });
+
+    // Auto-select "None of these times work" if all slots are marked unavailable (disabled)
+    const allDisabled = Array.from(timeSlotCheckboxes).length > 0 && Array.from(timeSlotCheckboxes).every(cb => cb.disabled);
+    if (allDisabled) {
+        noAvailabilityCheckbox.checked = true;
+        updateNoAvailabilityLabel();
+    }
+});
+</script>
+{% endblock %}

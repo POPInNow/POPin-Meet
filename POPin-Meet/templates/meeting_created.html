@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Meeting Created - POPin Meet{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="alert alert-success text-center">
+            <i class="fas fa-check-circle fa-2x mb-3"></i>
+            <h4>Meeting Created Successfully!</h4>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-calendar me-2"></i>{{ meeting.meeting_title }}
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Organizer:</strong> {{ meeting.organizer_name }}
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Time Options:</strong>
+                    <ul class="list-unstyled mt-2">
+                        {% for slot in meeting.time_slots %}
+                        <li class="mb-1">
+                            <i class="fas fa-clock me-2 text-muted"></i>{{ slot }} <small class="text-muted">({{ meeting.timezone }})</small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="mb-4">
+                    <label for="share_url" class="form-label">
+                        <strong>Share this link with participants:</strong>
+                    </label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="share_url" value="{{ share_url }}" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard()">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <small class="text-muted">Participants can use this link to vote on their availability</small>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('meeting_summary', token=meeting.token) }}" class="btn btn-info">
+                        <i class="fas fa-chart-bar me-2"></i>View Responses & Summary
+                    </a>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-plus me-2"></i>Create Another Meeting
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard() {
+    const shareUrl = document.getElementById('share_url');
+    shareUrl.select();
+    shareUrl.setSelectionRange(0, 99999);
+    
+    navigator.clipboard.writeText(shareUrl.value).then(function() {
+        // Show success feedback
+        const button = shareUrl.nextElementSibling;
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check text-success"></i>';
+        button.disabled = true;
+        
+        setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+        }, 2000);
+    }).catch(function() {
+        // Fallback for older browsers
+        document.execCommand('copy');
+        alert('Link copied to clipboard!');
+    });
+}
+</script>
+{% endblock %}

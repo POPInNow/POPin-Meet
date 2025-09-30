@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}{{ meeting.meeting_title }} Summary - POPin Meet{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>{{ meeting.meeting_title }}
+                </h3>
+                <small class="text-muted">Organized by {{ meeting.organizer_name }}</small>
+            </div>
+            <div class="card-body">
+                {% if responses %}
+                    {% if best_slot %}
+                    <div class="alert alert-success">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-trophy me-2"></i>Best Time Slot
+                        </h5>
+                        <p class="mb-2">
+                            <strong>{{ best_slot }}</strong>
+                            <span class="badge bg-secondary ms-2">{{ meeting.timezone }}</span>
+                        </p>
+                        <p class="mb-3">
+                            <strong>{{ best_slot_people|length }} people</strong> are available:
+                            {{ best_slot_people|join(', ') }}
+                        </p>
+                        
+                        <div class="border-top pt-3">
+                            <h6 class="mb-3">
+                                <i class="fas fa-calendar-plus me-2"></i>Add to Calendar
+                            </h6>
+                            <div class="d-flex gap-2 flex-wrap">
+                                {% if google_calendar_url %}
+                                <a href="{{ google_calendar_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="fab fa-google me-1"></i>Google Calendar
+                                </a>
+                                {% endif %}
+                                {% if outlook_calendar_url_office %}
+                                <a href="{{ outlook_calendar_url_office }}" target="_blank" class="btn btn-sm btn-outline-info">
+                                    <i class="fab fa-microsoft me-1"></i>Outlook Calendar
+                                </a>
+                                {% endif %}
+                                <a href="{{ url_for('download_ics', token=meeting.token) }}" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-download me-1"></i>Download .ics
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <h5 class="mb-3">Time Slot Availability</h5>
+                    {% for availability in slot_availability %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="card-title mb-2">
+                                        <i class="fas fa-clock me-2"></i>{{ availability.slot }} <small class="text-muted">({{ meeting.timezone }})</small>
+                                    </h6>
+                                    {% if availability.available_people %}
+                                    <p class="card-text mb-0">
+                                        <span class="badge bg-success me-2">{{ availability.count }} available</span>
+                                        {{ availability.available_people|join(', ') }}
+                                    </p>
+                                    {% else %}
+                                    <p class="card-text mb-0">
+                                        <span class="badge bg-secondary">No responses yet</span>
+                                    </p>
+                                    {% endif %}
+                                </div>
+                                <div class="text-end">
+                                    <div class="progress" style="width: 100px; height: 20px;">
+                                        {% set percentage = (availability.count / responses|length * 100) if responses else 0 %}
+                                        {% set percentage_int = ("%.0f"|format(percentage)) %}
+                                        <div class="progress-bar" role="progressbar" 
+                                             style="width: {{ percentage_int }}%" 
+                                             aria-valuenow="{{ percentage_int }}" 
+                                             aria-valuemin="0" aria-valuemax="100">
+                                            {{ percentage_int }}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    {% if no_availability_responses %}
+                    <div class="alert alert-warning mt-4">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Unavailable Participants
+                        </h6>
+                        <p class="mb-0">
+                            <strong>{{ no_availability_responses|length }} people</strong> said none of these times work:
+                            {{ no_availability_responses|join(', ') }}
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    <h5 class="mb-3 mt-4">All Responses ({{ responses|length }})</h5>
+                    <div class="row">
+                        {% for response in responses %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-user me-2"></i>{{ response.respondent_name }}
+                                    </h6>
+                                    <small class="text-muted d-block mb-2">
+                                        Responded {{ response.responded_at.strftime('%b %d, %Y at %I:%M %p') }}
+                                    </small>
+                                    <div class="small">
+                                        {% if response.get('no_availability', False) %}
+                                            <span class="text-warning">
+                                                <i class="fas fa-times me-1"></i>
+                                                None of these times work
+                                            </span>
+                                        {% elif response.available_slots %}
+                                            Available for:
+                                            <ul class="list-unstyled mt-1 mb-0">
+                                                {% for slot_index in response.available_slots %}
+                                                <li>
+                                                    <i class="fas fa-check text-success me-1"></i>
+                                                    {{ meeting.time_slots[slot_index] }} <small class="text-muted">({{ meeting.timezone }})</small>
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        {% else %}
+                                            <span class="text-muted">
+                                                <i class="fas fa-question me-1"></i>
+                                                No availability specified
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No responses yet</h5>
+                        <p class="text-muted">Share the meeting link to start collecting responses</p>
+                    </div>
+                {% endif %}
+
+                <div class="d-grid gap-2 mt-4">
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <a href="{{ url_for('respond_meeting', token=meeting.token) }}" class="btn btn-primary w-100">
+                                <i class="fas fa-plus me-2"></i>Add Your Response
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <button class="btn btn-outline-secondary w-100" onclick="copyShareLink()">
+                                <i class="fas fa-share me-2"></i>Copy Share Link
+                            </button>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-home me-2"></i>Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyShareLink() {
+    const shareUrl = "{{ url_for('respond_meeting', token=meeting.token, _external=True) }}";
+    
+    navigator.clipboard.writeText(shareUrl).then(function() {
+        // Show success feedback
+        const button = event.target.closest('button');
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check text-success me-2"></i>Copied!';
+        button.disabled = true;
+        
+        setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+        }, 2000);
+    }).catch(function() {
+        // Fallback
+        alert('Share link: ' + shareUrl);
+    });
+}
+
+// Auto-refresh the page every 30 seconds to show new responses
+setTimeout(() => {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}

@@ -1,0 +1,1046 @@
+{% extends "base.html" %}
+
+{% block title %}Create Meeting - POPin Meet{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-plus me-2"></i>Create New Meeting
+                </h3>
+            </div>
+            <div class="card-body">
+                {% if precreate_google_connected or precreate_outlook_connected %}
+                {% if precreate_google_connected %}
+                <div class="alert alert-success d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex align-items-center">
+                        <i class="fab fa-google me-3 fa-2x text-success"></i>
+                        <div>
+                            <h6 class="mb-1">Google Calendar Connected</h6>
+                            {% if precreate_profile and (precreate_profile.name or precreate_profile.email) %}
+                            <small class="text-muted d-block">
+                                {% if precreate_profile.name %}<i class="fas fa-user me-1"></i>{{ precreate_profile.name }}{% endif %}
+                                {% if precreate_profile.email %}<span class="ms-2"><i class="fas fa-envelope me-1"></i>{{ precreate_profile.email }}</span>{% endif %}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <a href="{{ url_for('disconnect_precreate', provider='google') }}" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-unlink me-1"></i>Disconnect
+                    </a>
+                </div>
+                {% endif %}
+                {% if precreate_outlook_connected %}
+                <div class="alert alert-success d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fab fa-microsoft me-3 fa-2x text-success"></i>
+                        <div>
+                            <h6 class="mb-1">Outlook Calendar Connected</h6>
+                            {% if precreate_profile and (precreate_profile.name or precreate_profile.email) %}
+                            <small class="text-muted d-block">
+                                {% if precreate_profile.name %}<i class="fas fa-user me-1"></i>{{ precreate_profile.name }}{% endif %}
+                                {% if precreate_profile.email %}<span class="ms-2"><i class="fas fa-envelope me-1"></i>{{ precreate_profile.email }}</span>{% endif %}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <a href="{{ url_for('disconnect_precreate', provider='outlook') }}" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-unlink me-1"></i>Disconnect
+                    </a>
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="alert alert-info mb-4">
+                    <h6 class="mb-2"><i class="fas fa-calendar-plus me-2"></i>Connect Your Calendar <small class="text-muted">(Optional)</small></h6>
+                    <p class="small mb-3">Autofill your name and check availability while proposing slots.</p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('connect_calendar_precreate') }}"><i class="fab fa-google me-1"></i>Connect Google Calendar</a>
+                        <a class="btn btn-sm btn-outline-info" href="{{ url_for('connect_outlook_precreate') }}"><i class="fab fa-microsoft me-1"></i>Connect Outlook</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if precreate_google_connected and precreate_outlook_connected %}
+                <div class="mb-3">
+                    <label class="form-label">Calendar provider for availability</label>
+                    <div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="av_provider" id="prov_google" value="google" {% if precreate_active_provider == 'google' %}checked{% endif %}>
+                            <label class="form-check-label" for="prov_google"><i class="fab fa-google me-1 text-danger"></i> Google</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="av_provider" id="prov_outlook" value="outlook" {% if precreate_active_provider == 'outlook' %}checked{% endif %}>
+                            <label class="form-check-label" for="prov_outlook"><i class="fab fa-microsoft me-1 text-primary"></i> Outlook</label>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="organizer_name" class="form-label">Your Name *</label>
+                        <input type="text" class="form-control" id="organizer_name" name="organizer_name" 
+                               value="{{ request.form.organizer_name or (precreate_profile.name if precreate_profile else '') or '' }}" required>
+                    </div>
+
+
+                    <div class="mb-3">
+                        <label for="meeting_title" class="form-label">Meeting Title *</label>
+                        <input type="text" class="form-control" id="meeting_title" name="meeting_title" 
+                               value="{{ request.form.meeting_title or '' }}" required
+                               placeholder="e.g., Team Standup, Project Review">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="expected_participants" class="form-label">Expected Number of Participants *</label>
+                        <input type="number" class="form-control" id="expected_participants" name="expected_participants" 
+                               value="{{ request.form.expected_participants or '5' }}" required min="2" max="50"
+                               placeholder="e.g., 5">
+                        <small class="text-muted">This helps us notify you at key response milestones</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="timezone" class="form-label">Timezone *</label>
+                        <select class="form-select" id="timezone" name="timezone" required>
+                            <optgroup label="USA Timezones">
+                                <option value="US/Mountain" selected>Mountain Time (MT)</option>
+                                <option value="US/Eastern">Eastern Time (ET)</option>
+                                <option value="US/Central">Central Time (CT)</option>
+                                <option value="US/Pacific">Pacific Time (PT)</option>
+                                <option value="US/Alaska">Alaska Time (AKT)</option>
+                                <option value="US/Hawaii">Hawaii Time (HT)</option>
+                            </optgroup>
+                            <optgroup label="Global Timezones">
+                                <option value="Europe/London">London (GMT/BST)</option>
+                                <option value="Europe/Paris">Paris (CET/CEST)</option>
+                                <option value="Europe/Berlin">Berlin (CET/CEST)</option>
+                                <option value="Europe/Rome">Rome (CET/CEST)</option>
+                                <option value="Europe/Madrid">Madrid (CET/CEST)</option>
+                                <option value="Europe/Amsterdam">Amsterdam (CET/CEST)</option>
+                                <option value="Europe/Stockholm">Stockholm (CET/CEST)</option>
+                                <option value="Europe/Warsaw">Warsaw (CET/CEST)</option>
+                                <option value="Europe/Moscow">Moscow (MSK)</option>
+                                <option value="Asia/Dubai">Dubai (GST)</option>
+                                <option value="Asia/Kolkata">Mumbai/Delhi (IST)</option>
+                                <option value="Asia/Shanghai">Shanghai (CST)</option>
+                                <option value="Asia/Hong_Kong">Hong Kong (HKT)</option>
+                                <option value="Asia/Tokyo">Tokyo (JST)</option>
+                                <option value="Asia/Seoul">Seoul (KST)</option>
+                                <option value="Asia/Singapore">Singapore (SGT)</option>
+                                <option value="Australia/Sydney">Sydney (AEDT/AEST)</option>
+                                <option value="Australia/Melbourne">Melbourne (AEDT/AEST)</option>
+                                <option value="Australia/Perth">Perth (AWST)</option>
+                                <option value="America/Toronto">Toronto (ET)</option>
+                                <option value="America/Vancouver">Vancouver (PT)</option>
+                                <option value="America/Mexico_City">Mexico City (CST)</option>
+                                <option value="America/Sao_Paulo">São Paulo (BRT)</option>
+                                <option value="America/Buenos_Aires">Buenos Aires (ART)</option>
+                                <option value="America/Lima">Lima (PET)</option>
+                                <option value="Africa/Cairo">Cairo (EET)</option>
+                                <option value="Africa/Lagos">Lagos (WAT)</option>
+                                <option value="Africa/Johannesburg">Johannesburg (SAST)</option>
+                            </optgroup>
+                        </select>
+                        <small class="text-muted">All meeting times will be displayed in this timezone</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Proposed Time Slots *</label>
+                        <small class="text-muted d-block mb-3">Add 2-3 time options for participants to choose from</small>
+                        
+                        <!-- Time Slot 1 -->
+                        <div class="mb-3" id="slot_container_1" data-duration-min="30">
+                            <label class="form-label">Time Slot 1 * <span id="availability_1" class="badge bg-secondary ms-2" style="display:none;">Checking…</span></label>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">Date</label>
+                                    <input type="date" class="form-control" id="date_1" name="date_1" required>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label small">Start Time</label>
+                                    <select class="form-select" id="start_time_1" name="start_time_1" required>
+                                        <option value="">Select time</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label small">End Time</label>
+                                    <select class="form-select" id="end_time_1" name="end_time_1" required disabled>
+                                        <option value="">Select time</option>
+                                    </select>
+                                    <small class="text-muted duration-indicator" id="duration_1" style="display: none;"></small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Time Slot 2 -->
+                        <div class="mb-3" id="slot_container_2" data-duration-min="30">
+                            <label class="form-label">Time Slot 2 * <span id="availability_2" class="badge bg-secondary ms-2" style="display:none;">Checking…</span></label>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">Date</label>
+                                    <input type="date" class="form-control" id="date_2" name="date_2" required>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label small">Start Time</label>
+                                    <select class="form-select" id="start_time_2" name="start_time_2" required>
+                                        <option value="">Select time</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label small">End Time</label>
+                                    <select class="form-select" id="end_time_2" name="end_time_2" required disabled>
+                                        <option value="">Select time</option>
+                                    </select>
+                                    <small class="text-muted duration-indicator" id="duration_2" style="display: none;"></small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Time Slot 3 (Optional) -->
+                        <div class="mb-3" id="slot_container_3" data-duration-min="30">
+                            <label class="form-label">Time Slot 3 (Optional) <span id="availability_3" class="badge bg-secondary ms-2" style="display:none;">Checking…</span></label>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label small">Date</label>
+                                    <input type="date" class="form-control" id="date_3" name="date_3">
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label small">Start Time</label>
+                                    <select class="form-select" id="start_time_3" name="start_time_3">
+                                        <option value="">Select time</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <label class="form-label small">End Time</label>
+                                    <select class="form-select" id="end_time_3" name="end_time_3" disabled>
+                                        <option value="">Select time</option>
+                                    </select>
+                                    <small class="text-muted duration-indicator" id="duration_3" style="display: none;"></small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden fields for the formatted time slots -->
+                        <input type="hidden" name="time_slot_1" id="formatted_slot_1">
+                        <input type="hidden" name="time_slot_2" id="formatted_slot_2">
+                        <input type="hidden" name="time_slot_3" id="formatted_slot_3">
+                    </div>
+
+                    <!-- Notification Preferences -->
+                    <div class="mb-4">
+                        <label class="form-label">Notification Preferences *</label>
+                        <small class="text-muted d-block mb-3">Choose how you'd like to be notified when your meeting is confirmed</small>
+
+                        <!-- Row 1: Email and Slack -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-envelope me-2"></i>Email
+                                        </h6>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="notify_email" name="notification_methods" value="email" {% if precreate_profile and precreate_profile.email %}checked{% endif %}>
+                                            <label class="form-check-label" for="notify_email">
+                                                Send email notifications
+                                            </label>
+                                        </div>
+                                        <input type="email" class="form-control form-control-sm" id="email_address" name="email_address"
+                                               value="{{ request.form.email_address or (precreate_profile.email if precreate_profile else '') or '' }}"
+                                               placeholder="your@email.com" style="{% if precreate_profile and precreate_profile.email %}display: block;{% else %}display: none;{% endif %}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fab fa-slack me-2"></i>Slack
+                                        </h6>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="notify_slack" name="notification_methods" value="slack">
+                                            <label class="form-check-label" for="notify_slack">
+                                                Send Slack notifications
+                                            </label>
+                                        </div>
+                                        <input type="url" class="form-control form-control-sm" id="slack_webhook" name="slack_webhook"
+                                               placeholder="https://hooks.slack.com/services/..." style="display: none;">
+                                        <small class="text-muted" style="display: none;" id="slack_help">
+                                            <a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener noreferrer">How to get a Slack webhook URL</a>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 2: SMS (enabled) and WhatsApp (disabled / coming soon) -->
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-sms me-2"></i>SMS
+                                        </h6>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="notify_sms" name="notification_methods" value="sms">
+                                            <label class="form-check-label" for="notify_sms">
+                                                Send SMS notifications
+                                            </label>
+                                        </div>
+                                        <input type="tel" class="form-control form-control-sm" id="sms_phone" name="sms_phone" placeholder="+1234567890" style="display: none;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card h-100 opacity-75">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fab fa-whatsapp me-2"></i>WhatsApp <span class="badge bg-secondary ms-1">Coming soon</span>
+                                        </h6>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" id="notify_whatsapp" name="notification_methods" value="whatsapp" disabled>
+                                            <label class="form-check-label text-muted" for="notify_whatsapp">
+                                                Send WhatsApp notifications
+                                            </label>
+                                        </div>
+                                        <input type="tel" class="form-control form-control-sm" id="whatsapp_phone" name="whatsapp_phone" placeholder="+1234567890" style="display: none;" disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-calendar-plus me-2"></i>Create Meeting
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Home
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus on the first input
+    document.getElementById('organizer_name').focus();
+    
+    // Set minimum date to today (timezone-safe)
+    const now = new Date();
+    const tzOffsetMs = now.getTimezoneOffset() * 60000; // minutes to ms
+    const localMidnightISODate = new Date(now.getTime() - tzOffsetMs).toISOString().split('T')[0];
+    const today = localMidnightISODate;
+    document.getElementById('date_1').setAttribute('min', today);
+    document.getElementById('date_2').setAttribute('min', today);
+    document.getElementById('date_3').setAttribute('min', today);
+    
+    // Populate time options with 15-minute increments
+    function populateTimeOptions(selectElement) {
+        selectElement.innerHTML = '<option value="">Select time</option>';
+        
+        for (let hour = 0; hour < 24; hour++) {
+            for (let minute = 0; minute < 60; minute += 15) {
+                const timeValue = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                const timeObj = new Date(`2000-01-01T${timeValue}`);
+                const displayTime = timeObj.toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit', 
+                    hour12: true 
+                });
+                
+                const option = document.createElement('option');
+                option.value = timeValue;
+                option.textContent = displayTime;
+                selectElement.appendChild(option);
+            }
+    
+    // When any slot changes, re-evaluate duplicates for the other slots immediately
+    function reevaluateOtherSlots(changedSlotNum) {
+        for (let i = 1; i <= 3; i++) {
+            if (i === changedSlotNum) continue;
+            updateStartTimeOptions(i);
+            updateEndTimeOptions(i);
+        }
+    }
+
+    // Strict duplicate detection helpers (same date + same start)
+    function collectStartKeys() {
+        const byKey = {};
+        for (let i = 1; i <= 3; i++) {
+            const d = document.getElementById(`date_${i}`)?.value || '';
+            const s = document.getElementById(`start_time_${i}`)?.value || '';
+            if (d && s) {
+                const k = `${d}|${s}`;
+                if (!byKey[k]) byKey[k] = [];
+                byKey[k].push(i);
+            }
+        }
+        return byKey;
+    }
+
+    function ensureDupWarnEl(slotNum) {
+        const container = document.getElementById(`slot_container_${slotNum}`);
+        if (!container) return null;
+        let warn = document.getElementById(`dup_warn_${slotNum}`);
+        if (!warn) {
+            warn = document.createElement('small');
+            warn.id = `dup_warn_${slotNum}`;
+            warn.className = 'badge bg-warning ms-2';
+            warn.style.display = 'none';
+            // Place near the duration element if present, else append to container
+            const durationEl = document.getElementById(`duration_${slotNum}`);
+            if (durationEl && durationEl.parentNode) {
+                durationEl.parentNode.insertBefore(warn, durationEl.nextSibling);
+            } else {
+                container.appendChild(warn);
+            }
+        }
+        return warn;
+    }
+
+    function applyDuplicateUI() {
+        const byKey = collectStartKeys();
+        // Build a quick lookup: slot -> duplicates-with
+        const dupOf = {};
+        Object.keys(byKey).forEach(k => {
+            const arr = byKey[k];
+            if (arr.length > 1) {
+                // Mark every entry as duplicate of the first
+                const first = arr[0];
+                for (let j = 1; j < arr.length; j++) {
+                    dupOf[arr[j]] = first;
+                }
+            }
+        });
+
+        for (let i = 1; i <= 3; i++) {
+            const startSel = document.getElementById(`start_time_${i}`);
+            const endSel = document.getElementById(`end_time_${i}`);
+            const warn = ensureDupWarnEl(i);
+            if (!startSel || !endSel) continue;
+            if (dupOf[i]) {
+                // Duplicate — show warning, disable end select, and set validity on start
+                if (warn) { warn.textContent = `Duplicate of Time Slot ${dupOf[i]}`; warn.style.display = 'inline-block'; }
+                endSel.disabled = true;
+                startSel.setCustomValidity('Duplicate start time: matches another slot on the same date');
+            } else {
+                if (warn) warn.style.display = 'none';
+                // Only enable end if a start is selected; updateEndTimeOptions already enforces end>start
+                if (startSel.value) endSel.disabled = false;
+                startSel.setCustomValidity('');
+            }
+        }
+    }
+        }
+    }
+    
+    // Helpers for duplicate detection across Time Slot 1/2/3
+    // Strict rule: duplicates are defined by same date + same start (end time is ignored)
+    function slotKey(date, start) {
+        return `${date}|${start}`;
+    }
+    // Return a map of key -> slotNum for all slots that have date+start (ignore end), except excludeSlotNum
+    function collectFilledSlots(excludeSlotNum) {
+        const map = {};
+        for (let i = 1; i <= 3; i++) {
+            if (i === excludeSlotNum) continue;
+            const d = document.getElementById(`date_${i}`)?.value || '';
+            const s = document.getElementById(`start_time_${i}`)?.value || '';
+            if (d && s) map[slotKey(d, s)] = i;
+        }
+        return map;
+    }
+    
+    // Disable and cross out unavailable end times for a given slot/date.
+    // Requires an explicit start time; otherwise the end select remains disabled.
+    async function updateEndTimeOptions(slotNum) {
+        const date = document.getElementById(`date_${slotNum}`).value;
+        const startSel = document.getElementById(`start_time_${slotNum}`);
+        const endSel = document.getElementById(`end_time_${slotNum}`);
+        if (!endSel) return;
+
+        // Reset labels and enabled state
+        Array.from(endSel.options).forEach(opt => {
+            if (opt.dataset.baseLabel) opt.textContent = opt.dataset.baseLabel;
+            opt.style.textDecoration = '';
+            opt.disabled = false;
+        });
+
+        // Need a date and an explicit start time; otherwise keep end disabled
+        if (!date || !startSel || !startSel.value) {
+            endSel.disabled = true;
+            return;
+        }
+        const explicitStart = startSel.value;
+        endSel.disabled = false;
+
+        const providerRadio = document.querySelector('input[name="av_provider"]:checked');
+        const provider = providerRadio ? providerRadio.value : undefined;
+        const timezone = document.getElementById('timezone').value;
+        const duplicateMap = collectFilledSlots(slotNum);
+
+        const optionElems = [];
+        const slots = [];
+        Array.from(endSel.options).forEach(opt => {
+            const end = opt.value;
+            if (!end) return; // placeholder
+            // End must be strictly after start
+            const start = explicitStart;
+            if (end <= start) { opt.disabled = true; return; }
+            optionElems.push(opt);
+            if (!opt.dataset.baseLabel) opt.dataset.baseLabel = opt.textContent;
+            slots.push({ date, start, end });
+        });
+
+        if (slots.length === 0) return;
+
+        // Fast path: immediately mark duplicates (same date+start) without waiting for availability API
+        optionElems.forEach((opt, idx) => {
+            const s = slots[idx]?.start;
+            const key = slotKey(date, s);
+            const dupOf = duplicateMap[key];
+            if (dupOf) {
+                opt.disabled = true;
+                opt.style.textDecoration = 'line-through';
+                const base = opt.dataset.baseLabel || opt.textContent;
+                opt.textContent = `🔁 ${base}`;
+                opt.title = `Duplicates Time Slot ${dupOf}`;
+            }
+        });
+
+        // Fast path: immediately mark duplicates (same date+start) without waiting for availability API
+        optionElems.forEach((opt, idx) => {
+            const key = slotKey(date, explicitStart);
+            const dupOf = duplicateMap[key];
+            if (dupOf) {
+                opt.disabled = true;
+                opt.style.textDecoration = 'line-through';
+                const base = opt.dataset.baseLabel || opt.textContent;
+                opt.textContent = `🔁 ${base}`;
+                opt.title = `Duplicates Time Slot ${dupOf}`;
+            }
+        });
+
+        try {
+            const res = await fetch('{{ url_for('api_precreate_freebusy') }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider, timezone, slots })
+            });
+            const data = await res.json();
+            if (!data.ok) return;
+            const availability = data.availability || {};
+            optionElems.forEach((opt, idx) => {
+                const key = slotKey(date, explicitStart);
+                const dupOf = duplicateMap[key];
+                const isDup = !!dupOf;
+                const avail = !!availability[idx];
+                if (!avail || isDup) {
+                    opt.disabled = true;
+                    opt.style.textDecoration = 'line-through';
+                    const base = opt.dataset.baseLabel || opt.textContent;
+                    opt.textContent = isDup ? `🔁 ${base}` : `⛔ ${base}`;
+                    if (isDup) opt.title = `Duplicates Time Slot ${dupOf}`;
+                } else {
+                    opt.disabled = false;
+                    opt.style.textDecoration = '';
+                    opt.textContent = opt.dataset.baseLabel || opt.textContent;
+                    opt.removeAttribute('title');
+                }
+            });
+            // If the currently selected end becomes disabled, clear it (user must choose)
+            if (endSel.value && endSel.selectedOptions.length && endSel.selectedOptions[0].disabled) {
+                endSel.value = '';
+            }
+        } catch (e) {
+            // leave options untouched on error
+        }
+    }
+    
+    // Populate all time select elements
+    for (let i = 1; i <= 3; i++) {
+        populateTimeOptions(document.getElementById(`start_time_${i}`));
+        populateTimeOptions(document.getElementById(`end_time_${i}`));
+    }
+    
+    // Function to format date and time into readable string
+    function formatTimeSlot(date, startTime, endTime) {
+        if (!date || !startTime || !endTime) return '';
+        
+        // Avoid using new Date('YYYY-MM-DD') which is parsed as UTC in many browsers
+        // Parse components and create a local Date(year, monthIndex, day)
+        const [y, m, d] = date.split('-').map(Number);
+        if (!y || !m || !d) return '';
+        const dateObj = new Date(y, m - 1, d); // local time
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const formattedDate = dateObj.toLocaleDateString('en-US', options);
+        
+        // Format times to 12-hour format
+        const startTimeObj = new Date(`2000-01-01T${startTime}`);
+        const endTimeObj = new Date(`2000-01-01T${endTime}`);
+        const startFormatted = startTimeObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        const endFormatted = endTimeObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        
+        return `${formattedDate}, ${startFormatted} - ${endFormatted}`;
+    }
+    
+    // Function to update hidden field
+    function updateHiddenField(slotNum) {
+        const date = document.getElementById(`date_${slotNum}`).value;
+        const startTime = document.getElementById(`start_time_${slotNum}`).value;
+        const endTime = document.getElementById(`end_time_${slotNum}`).value;
+        const formatted = formatTimeSlot(date, startTime, endTime);
+        document.getElementById(`formatted_slot_${slotNum}`).value = formatted;
+    }
+    
+    // Function to calculate duration between two times
+    function calculateDuration(startTime, endTime) {
+        if (!startTime || !endTime) return '';
+        
+        const start = new Date(`2000-01-01T${startTime}`);
+        const end = new Date(`2000-01-01T${endTime}`);
+        const diffMs = end - start;
+        
+        if (diffMs <= 0) return '';
+        
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        const hours = Math.floor(diffMinutes / 60);
+        const minutes = diffMinutes % 60;
+        
+        if (hours > 0) {
+            return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+        } else {
+            return `${minutes}m`;
+        }
+    }
+    
+    // Function to add 30 minutes to a time
+    function addMinutesToTime(timeStr, minutesToAdd) {
+        const time = new Date(`2000-01-01T${timeStr}`);
+        time.setMinutes(time.getMinutes() + minutesToAdd);
+        return time.toTimeString().slice(0, 5); // Return HH:MM format
+    }
+    function minutesBetween(startTime, endTime) {
+        if (!startTime || !endTime) return null;
+        const start = new Date(`2000-01-01T${startTime}`);
+        const end = new Date(`2000-01-01T${endTime}`);
+        const diff = Math.floor((end - start) / 60000);
+        return isNaN(diff) || diff <= 0 ? null : diff;
+    }
+    function subtractMinutesFromTime(timeStr, minutesToSubtract) {
+        const time = new Date(`2000-01-01T${timeStr}`);
+        time.setMinutes(time.getMinutes() - minutesToSubtract);
+        return time.toTimeString().slice(0, 5);
+    }
+    function updateDurationSaved(slotNum) {
+        const startTime = document.getElementById(`start_time_${slotNum}`).value;
+        const endTime = document.getElementById(`end_time_${slotNum}`).value;
+        const container = document.getElementById(`slot_container_${slotNum}`);
+        const diff = minutesBetween(startTime, endTime);
+        if (container && diff) {
+            container.dataset.durationMin = String(diff);
+            const durationElement = document.getElementById(`duration_${slotNum}`);
+            if (durationElement) {
+                durationElement.textContent = `Duration: ${diff}m`;
+                durationElement.style.display = 'block';
+            }
+        }
+    }
+
+    // Disable and cross out unavailable start times for a given slot/date
+    async function updateStartTimeOptions(slotNum) {
+        const date = document.getElementById(`date_${slotNum}`).value;
+        const startSel = document.getElementById(`start_time_${slotNum}`);
+        const endSel = document.getElementById(`end_time_${slotNum}`);
+        if (!startSel) return;
+
+        // Restore labels before applying availability
+        Array.from(startSel.options).forEach(opt => {
+            if (opt.dataset.baseLabel) opt.textContent = opt.dataset.baseLabel;
+            opt.style.textDecoration = '';
+            opt.disabled = false;
+        });
+
+        if (!date) return; // nothing to evaluate yet
+
+        // Determine duration to test per option
+        // Be lenient before an end time is chosen: assume minimum step (15 minutes)
+        let durationMin = 15;
+        // Only if user explicitly chose an End Time (not auto-populated), respect that duration
+        const endUserChosen = endSel && endSel.dataset && endSel.dataset.userChosen === '1';
+        if (endUserChosen && startSel && startSel.value && endSel.value) {
+            const d = minutesBetween(startSel.value, endSel.value);
+            if (d) durationMin = d;
+        }
+
+        // Determine provider and duplicate map
+        const providerRadio = document.querySelector('input[name="av_provider"]:checked');
+        const provider = providerRadio ? providerRadio.value : undefined;
+        const timezone = document.getElementById('timezone').value;
+        const duplicateMap = collectFilledSlots(slotNum);
+
+        // Build slots for every option (skip placeholder and wrap-past-midnight cases)
+        const optionElems = [];
+        const slots = [];
+        Array.from(startSel.options).forEach(opt => {
+            if (!opt.value) return; // placeholder
+            const start = opt.value;
+            const end = addMinutesToTime(start, durationMin);
+            // Skip wrap to next day to avoid confusion
+            if (end <= start) return;
+            optionElems.push(opt);
+            slots.push({ date, start, end });
+            // cache base label
+            if (!opt.dataset.baseLabel) opt.dataset.baseLabel = opt.textContent;
+        });
+
+        if (slots.length === 0) return;
+
+        try {
+            const res = await fetch('{{ url_for('api_precreate_freebusy') }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider, timezone, slots })
+            });
+            const data = await res.json();
+            if (!data.ok) return; // leave options enabled if no provider/connection
+            const availability = data.availability || {};
+            optionElems.forEach((opt, idx) => {
+                const avail = !!availability[idx];
+                if (!avail) {
+                    opt.disabled = true;
+                    opt.style.textDecoration = 'line-through';
+                    opt.textContent = `⛔ ${opt.dataset.baseLabel || opt.textContent}`;
+                } else {
+                    opt.disabled = false;
+                    opt.style.textDecoration = '';
+                    opt.textContent = opt.dataset.baseLabel || opt.textContent;
+                }
+            });
+        } catch (e) {
+            // Network error — leave options untouched
+        }
+    }
+    
+    // Function to auto-populate end time when start time changes
+    function autoPopulateEndTime(slotNum) {
+        const startTimeElement = document.getElementById(`start_time_${slotNum}`);
+        const endTimeElement = document.getElementById(`end_time_${slotNum}`);
+        const durationElement = document.getElementById(`duration_${slotNum}`);
+        const container = document.getElementById(`slot_container_${slotNum}`);
+        
+        const startTime = startTimeElement.value;
+        const saved = container && container.dataset.durationMin ? parseInt(container.dataset.durationMin, 10) : 30;
+        const durationMin = (isNaN(saved) || saved <= 0) ? 30 : saved;
+        if (startTime) {
+            const saved = container && container.dataset.durationMin ? parseInt(container.dataset.durationMin, 10) : 30;
+            const endTime = addMinutesToTime(startTime, isNaN(saved) || saved <= 0 ? 30 : saved);
+            endTimeElement.value = endTime;
+            // Mark as auto-populated (not user-chosen)
+            endTimeElement.dataset.userChosen = '0';
+            // Show duration
+            const durationText = calculateDuration(startTime, endTime);
+            if (durationText) {
+                durationElement.textContent = `Duration: ${durationText}`;
+                durationElement.style.display = 'block';
+            } else {
+                durationElement.style.display = 'none';
+            }
+        } else {
+            durationElement.style.display = 'none';
+        }
+        
+        updateHiddenField(slotNum);
+        updateDurationSaved(slotNum);
+        // Re-evaluate end-time options whenever we auto-populate
+        updateEndTimeOptions(slotNum);
+    }
+    
+    // Add event listeners to update hidden fields and handle auto-population
+    for (let i = 1; i <= 3; i++) {
+        const startTimeElement = document.getElementById(`start_time_${i}`);
+        const endTimeElement = document.getElementById(`end_time_${i}`);
+        const dateElement = document.getElementById(`date_${i}`);
+        
+        if (startTimeElement) {
+            startTimeElement.addEventListener('change', () => { 
+                const endSel = document.getElementById(`end_time_${i}`);
+                if (endSel) {
+                    if (startTimeElement.value) {
+                        endSel.disabled = false;
+                        autoPopulateEndTime(i);
+                        updateEndTimeOptions(i);
+                    } else {
+                        endSel.value = '';
+                        endSel.disabled = true;
+                        updateEndTimeOptions(i);
+                    }
+                }
+                reevaluateOtherSlots(i);
+                scheduleAvailabilityCheck(); 
+            });
+            // Re-evaluate options when user opens the dropdown
+            startTimeElement.addEventListener('focus', () => updateStartTimeOptions(i));
+            startTimeElement.addEventListener('mousedown', () => updateStartTimeOptions(i));
+        }
+        
+        if (endTimeElement) {
+            endTimeElement.addEventListener('change', () => { 
+                // User explicitly changed End Time
+                endTimeElement.dataset.userChosen = '1';
+                updateDurationSaved(i); 
+                updateStartTimeOptions(i); 
+                updateEndTimeOptions(i); 
+                reevaluateOtherSlots(i);
+                scheduleAvailabilityCheck(); 
+            });
+            // Re-evaluate options when user opens the dropdown
+            endTimeElement.addEventListener('focus', () => updateEndTimeOptions(i));
+            endTimeElement.addEventListener('mousedown', () => updateEndTimeOptions(i));
+        }
+        
+        if (dateElement) {
+            dateElement.addEventListener('change', () => { 
+                updateHiddenField(i); 
+                updateStartTimeOptions(i); 
+                updateEndTimeOptions(i); 
+                reevaluateOtherSlots(i);
+                scheduleAvailabilityCheck(); 
+            });
+        }
+    }
+    
+    // Validate end time is after start time
+    function validateTimes(slotNum) {
+        const startTime = document.getElementById(`start_time_${slotNum}`).value;
+        const endTime = document.getElementById(`end_time_${slotNum}`).value;
+        
+        if (startTime && endTime && startTime >= endTime) {
+            document.getElementById(`end_time_${slotNum}`).setCustomValidity('End time must be after start time');
+        } else {
+            document.getElementById(`end_time_${slotNum}`).setCustomValidity('');
+        }
+    }
+    
+    // Add validation event listeners
+    for (let i = 1; i <= 3; i++) {
+        const startTimeElement = document.getElementById(`start_time_${i}`);
+        const endTimeElement = document.getElementById(`end_time_${i}`);
+        
+        if (startTimeElement && endTimeElement) {
+            startTimeElement.addEventListener('change', () => validateTimes(i));
+            endTimeElement.addEventListener('change', () => validateTimes(i));
+        }
+    }
+    
+    // Notification preferences functionality
+    function toggleNotificationInput(checkboxId, inputId, helpId = null) {
+        const checkbox = document.getElementById(checkboxId);
+        const input = document.getElementById(inputId);
+        const help = helpId ? document.getElementById(helpId) : null;
+        
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                input.style.display = 'block';
+                input.required = true;
+                if (help) help.style.display = 'block';
+            } else {
+                input.style.display = 'none';
+                input.required = false;
+                input.value = '';
+                if (help) help.style.display = 'none';
+            }
+        });
+    }
+    
+    // Set up notification preference toggles (WhatsApp disabled for now)
+    toggleNotificationInput('notify_slack', 'slack_webhook', 'slack_help');
+    toggleNotificationInput('notify_email', 'email_address');
+    toggleNotificationInput('notify_sms', 'sms_phone');
+    
+    // Availability checking (non-blocking warnings)
+    let debounceTimer = null;
+    function scheduleAvailabilityCheck() {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(updateAvailability, 400);
+    }
+
+    function collectSlots() {
+        const slots = [];
+        for (let i = 1; i <= 3; i++) {
+            const date = document.getElementById(`date_${i}`).value;
+            const start = document.getElementById(`start_time_${i}`).value;
+            const end = document.getElementById(`end_time_${i}`).value;
+            slots.push({date, start, end});
+        }
+        return slots;
+    }
+
+    function setAvailabilityBadge(i, status) {
+        const el = document.getElementById(`availability_${i}`);
+        const container = document.getElementById(`slot_container_${i}`);
+        if (!el || !container) return;
+        el.style.display = 'inline-block';
+        el.classList.remove('bg-secondary','bg-success','bg-danger','bg-warning','text-dark');
+        container.classList.remove('text-decoration-line-through');
+        if (status === 'available') {
+            el.textContent = 'Available';
+            el.classList.add('bg-success');
+        } else if (status === 'busy') {
+            el.textContent = 'Busy';
+            el.classList.add('bg-danger');
+            container.classList.add('text-decoration-line-through');
+        } else if (status === 'duplicate') {
+            el.textContent = 'Duplicate';
+            el.classList.add('bg-warning','text-dark');
+            container.classList.add('text-decoration-line-through');
+        } else if (status === 'checking') {
+            el.textContent = 'Checking…';
+            el.classList.add('bg-secondary');
+        } else {
+            el.style.display = 'none';
+        }
+    }
+
+
+    async function updateAvailability() {
+        // Determine provider selection
+        const providerRadio = document.querySelector('input[name="av_provider"]:checked');
+        const provider = providerRadio ? providerRadio.value : undefined;
+        const timezone = document.getElementById('timezone').value;
+        const slots = collectSlots();
+
+        // Detect duplicates by same date+start (strict)
+        const keyToFirst = {};
+        const duplicateIndexSet = new Set();
+        for (let i = 1; i <= 3; i++) {
+            const s = slots[i-1];
+            if (s.date && s.start) {
+                const k = `${s.date}|${s.start}`;
+                if (keyToFirst[k]) {
+                    duplicateIndexSet.add(i);
+                    duplicateIndexSet.add(keyToFirst[k]);
+                } else {
+                    keyToFirst[k] = i;
+                }
+            }
+        }
+
+        // Show checking for filled slots, but mark duplicates immediately
+        for (let i = 1; i <= 3; i++) {
+            const s = slots[i-1];
+            if (s.date && s.start && s.end) {
+                if (duplicateIndexSet.has(i)) setAvailabilityBadge(i, 'duplicate');
+                else setAvailabilityBadge(i, 'checking');
+            } else setAvailabilityBadge(i, '');
+        }
+
+        // Removed duplicate warnings per user feedback
+
+        const hasAny = slots.some(s => s.date && s.start && s.end);
+        if (!hasAny) return;
+
+        try {
+            const res = await fetch('{{ url_for('api_precreate_freebusy') }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider, timezone, slots })
+            });
+            const data = await res.json();
+            if (!data.ok) {
+                // No provider selected or not connected; show neutral state
+                for (let i = 1; i <= 3; i++) {
+                    setAvailabilityBadge(i, '');
+                }
+                return;
+            }
+            const availability = data.availability || {};
+            for (let i = 1; i <= 3; i++) {
+                const idx = i - 1;
+                const s = slots[idx];
+                if (!s.date || !s.start || !s.end) {
+                    setAvailabilityBadge(i, '');
+                    continue;
+                }
+                if (duplicateIndexSet.has(i)) {
+                    setAvailabilityBadge(i, 'duplicate');
+                    continue;
+                }
+                const avail = availability[idx];
+                setAvailabilityBadge(i, avail ? 'available' : 'busy');
+            }
+        } catch (e) {
+            // Network error: keep neutral badges
+            for (let i = 1; i <= 3; i++) {
+                setAvailabilityBadge(i, '');
+            }
+        }
+    }
+
+    // Provider selection change
+    const providerRadios = document.querySelectorAll('input[name="av_provider"]');
+    providerRadios.forEach(r => r.addEventListener('change', async function() {
+        try {
+            await fetch('{{ url_for('api_precreate_set_provider') }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider: this.value })
+            });
+        } catch (e) {}
+        for (let i = 1; i <= 3; i++) { updateStartTimeOptions(i); updateEndTimeOptions(i); }
+        scheduleAvailabilityCheck();
+    }));
+
+    // Trigger availability check on input changes
+    for (let i = 1; i <= 3; i++) {
+        ['date','start_time','end_time'].forEach(kind => {
+            const el = document.getElementById(`${kind}_${i}`);
+            if (el) el.addEventListener('change', scheduleAvailabilityCheck);
+        });
+    }
+    document.getElementById('timezone').addEventListener('change', () => { for (let i = 1; i <= 3; i++) { updateStartTimeOptions(i); updateEndTimeOptions(i); } scheduleAvailabilityCheck(); });
+
+    // Initial option availability and availability check
+    for (let i = 1; i <= 3; i++) { updateStartTimeOptions(i); updateEndTimeOptions(i); }
+    scheduleAvailabilityCheck();
+
+    // Update all hidden fields before form submission and validate notifications
+    document.querySelector('form').addEventListener('submit', function(e) {
+        // Update hidden fields
+        for (let i = 1; i <= 3; i++) {
+            updateHiddenField(i);
+        }
+        // Prevent duplicate slots client-side (strict on same date+start)
+        const keyToSlot = {};
+        for (let i = 1; i <= 3; i++) {
+            const d = document.getElementById(`date_${i}`).value;
+            const s = document.getElementById(`start_time_${i}`).value;
+            if (d && s) {
+                const k = `${d}|${s}`;
+                if (keyToSlot[k]) {
+                    e.preventDefault();
+                    alert(`Time Slot ${i} duplicates Time Slot ${keyToSlot[k]}. Please choose a different time.`);
+                    return;
+                }
+                keyToSlot[k] = i;
+            }
+        }
+        
+        // Validate at least one notification method is selected
+        const notificationMethods = document.querySelectorAll('input[name="notification_methods"]:checked');
+        if (notificationMethods.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one notification method.');
+        }
+    });
+});
+</script>
+{% endblock %}
